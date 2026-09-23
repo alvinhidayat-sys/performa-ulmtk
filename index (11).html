@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kendali Kinerja SLA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#122229; --ink-soft:#3B4E56;
+    --paper:#F1F3EF; --panel:#FFFFFF;
+    --line:#D3D9D2; --line-strong:#9FAAA3;
+    --teal:#0E7C7B; --teal-dark:#0A5F5F;
+    --amber:#C97A1F; --amber-bg:#FBF0DF;
+    --red:#B3452E; --red-bg:#FAE8E3;
+    --green:#3E7D4C; --green-bg:#E7F1E6;
+    --radius:4px;
+    --shadow:0 1px 2px rgba(18,34,41,.06);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    font-size:15px;
+    line-height:1.5;
+    background-image:
+      linear-gradient(var(--line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size:34px 34px;
+    background-attachment:fixed;
+    min-height:100vh;
+  }
+  h1,h2,h3,.font-display{font-family:'Space Grotesk',sans-serif;}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  button{font-family:inherit;cursor:pointer;}
+  .hidden{display:none !important;}
+
+  /* ---------- Topbar ---------- */
+  .topbar{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:16px 28px;background:var(--ink);color:#EDF2EF;
+  }
+  .topbar .brand{display:flex;align-items:center;gap:10px;font-family:'Space Grotesk';font-weight:600;font-size:16px;letter-spacing:.2px;}
+  .brand-mark{width:22px;height:22px;flex:none;}
+  .topbar .user-chip{font-size:13px;color:#B9C7C3;display:flex;align-items:center;gap:12px;}
+  .topbar .user-chip b{color:#fff;font-weight:600;}
+  .link-btn{background:none;border:none;color:#B9C7C3;font-size:13px;text-decoration:underline;text-underline-offset:2px;padding:0;}
+  .link-btn:hover{color:#fff;}
+
+  .wrap{max-width:960px;margin:0 auto;padding:40px 24px 80px;}
+
+  /* ---------- Landing ---------- */
+  .hero{
+    max-width:720px;margin:64px auto 0;padding:0 24px;text-align:left;
+  }
+  .hero .eyebrow-line{display:flex;align-items:center;gap:12px;margin-bottom:22px;}
+  .hero .eyebrow-line .dash{width:40px;height:2px;background:var(--teal);}
+  .hero .eyebrow-line span{font-size:13px;color:var(--ink-soft);}
+  .hero h1{font-size:42px;line-height:1.12;margin:0 0 18px;font-weight:600;}
+  .hero p.lead{color:var(--ink-soft);font-size:16px;max-width:520px;margin:0 0 40px;}
+  .switch-row{display:flex;gap:16px;flex-wrap:wrap;}
+  .switch-card{
+    flex:1;min-width:230px;background:var(--panel);border:1px solid var(--line-strong);
+    border-radius:var(--radius);padding:22px 22px 20px;text-align:left;
+    display:flex;flex-direction:column;gap:10px;transition:border-color .15s, transform .15s;
+  }
+  .switch-card:hover{border-color:var(--teal);transform:translateY(-2px);}
+  .switch-card .num{font-family:'IBM Plex Mono';font-size:12px;color:var(--teal);}
+  .switch-card h3{margin:0;font-size:19px;}
+  .switch-card p{margin:0;color:var(--ink-soft);font-size:13.5px;}
+  .switch-card .go{margin-top:8px;font-size:13px;font-weight:600;color:var(--ink);}
+
+  .grid-illustration{margin-top:56px;display:grid;grid-template-columns:repeat(12,1fr);gap:6px;opacity:.55;}
+  .grid-illustration i{display:block;height:3px;background:var(--line-strong);border-radius:2px;}
+  .grid-illustration i:nth-child(3n){background:var(--teal);}
+
+  /* ---------- Panels / cards ---------- */
+  .panel{background:var(--panel);border:1px solid var(--line-strong);border-radius:var(--radius);box-shadow:var(--shadow);}
+  .panel-pad{padding:28px;}
+  .panel-head{padding:20px 28px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;}
+  .panel-head h2{margin:0;font-size:20px;font-weight:600;}
+  .panel-head .sub{font-size:13px;color:var(--ink-soft);margin-top:2px;}
+
+  /* ---------- Login ---------- */
+  .login-shell{max-width:420px;margin:70px auto;}
+  label{display:block;font-size:12.5px;font-weight:600;color:var(--ink-soft);margin-bottom:6px;letter-spacing:.2px;}
+  input[type=text],input[type=password],input[type=number],select{
+    width:100%;padding:11px 12px;border:1px solid var(--line-strong);border-radius:var(--radius);
+    background:#fff;font-family:inherit;font-size:14.5px;color:var(--ink);
+  }
+  input:focus,select:focus{outline:2px solid var(--teal);outline-offset:1px;border-color:var(--teal);}
+  .field{margin-bottom:18px;}
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    padding:11px 20px;border-radius:var(--radius);border:1px solid transparent;
+    font-size:14px;font-weight:600;
+  }
+  .btn-primary{background:var(--ink);color:#fff;}
+  .btn-primary:hover{background:var(--teal-dark);}
+  .btn-primary:disabled{background:#B9C2BC;cursor:not-allowed;}
+  .btn-ghost{background:transparent;border-color:var(--line-strong);color:var(--ink);}
+  .btn-ghost:hover{border-color:var(--ink);}
+  .btn-block{width:100%;}
+  .error-msg{background:var(--red-bg);color:var(--red);border:1px solid #EBC3B8;padding:10px 12px;border-radius:var(--radius);font-size:13.5px;margin-bottom:16px;}
+  .success-msg{background:var(--green-bg);color:var(--green);border:1px solid #C7DEC7;padding:10px 12px;border-radius:var(--radius);font-size:13.5px;margin-bottom:16px;}
+
+  /* ---------- Input screen ---------- */
+  .selector-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:24px 28px;border-bottom:1px solid var(--line);}
+  .group{border-top:1px solid var(--line);}
+  .group:first-of-type{border-top:none;}
+  .group-head{padding:16px 28px 8px;display:flex;align-items:baseline;gap:10px;}
+  .group-head .tag{font-family:'IBM Plex Mono';font-size:11px;padding:2px 7px;border:1px solid var(--line-strong);border-radius:20px;color:var(--ink-soft);}
+  .group-head h3{margin:0;font-size:15px;font-weight:600;}
+  .sub-group{padding:0 28px 18px;}
+  .sub-group .sub-title{font-size:13px;color:var(--ink-soft);margin:0 0 10px;font-style:italic;}
+
+  table.entry{width:100%;border-collapse:collapse;}
+  table.entry th{text-align:left;font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--ink-soft);padding:8px 10px;border-bottom:1px solid var(--line-strong);}
+  table.entry td{padding:10px 10px;border-bottom:1px solid var(--line);vertical-align:top;font-size:13.5px;}
+  table.entry td.crit{max-width:340px;}
+  table.entry input{padding:8px 9px;font-size:13.5px;}
+  .col-sat{white-space:nowrap;color:var(--ink-soft);font-family:'IBM Plex Mono';font-size:12.5px;}
+  .col-tgt{white-space:nowrap;font-family:'IBM Plex Mono';font-size:12.5px;}
+  .filled-dot{width:7px;height:7px;border-radius:50%;background:var(--line-strong);display:inline-block;margin-right:6px;}
+  .filled-dot.on{background:var(--teal);}
+
+  .footer-bar{position:sticky;bottom:0;background:var(--panel);border-top:1px solid var(--line-strong);
+    padding:16px 28px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;}
+  .progress-note{font-size:13px;color:var(--ink-soft);}
+  .progress-note b{color:var(--ink);font-family:'IBM Plex Mono';}
+
+  /* ---------- Review modal ---------- */
+  .overlay{position:fixed;inset:0;background:rgba(15,26,30,.55);display:flex;align-items:flex-start;justify-content:center;padding:48px 20px;overflow:auto;z-index:50;}
+  .modal{background:#fff;max-width:760px;width:100%;border-radius:var(--radius);box-shadow:0 12px 40px rgba(0,0,0,.25);}
+  .modal-head{padding:22px 28px;border-bottom:1px solid var(--line);}
+  .modal-head h2{margin:0 0 4px;font-size:19px;}
+  .modal-body{padding:20px 28px;max-height:60vh;overflow:auto;}
+  .review-row{display:flex;justify-content:space-between;gap:16px;padding:10px 0;border-bottom:1px dashed var(--line);font-size:13.5px;}
+  .review-row .lbl{color:var(--ink-soft);}
+  .review-row .val{font-family:'IBM Plex Mono';font-weight:600;}
+  .modal-foot{padding:18px 28px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:10px;}
+
+  /* ---------- Monitoring ---------- */
+  .filter-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;padding:22px 28px;border-bottom:1px solid var(--line);}
+  .stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;padding:22px 28px;}
+  .stat{border:1px solid var(--line);border-radius:var(--radius);padding:16px;}
+  .stat .n{font-family:'IBM Plex Mono';font-size:26px;font-weight:600;}
+  .stat .l{font-size:12.5px;color:var(--ink-soft);margin-top:4px;}
+  table.rekap{width:100%;border-collapse:collapse;font-size:13px;}
+  table.rekap th{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line-strong);color:var(--ink-soft);font-size:11px;text-transform:uppercase;letter-spacing:.3px;position:sticky;top:0;background:#fff;}
+  table.rekap td{padding:9px 12px;border-bottom:1px solid var(--line);}
+  table.rekap tr:hover td{background:#F7F8F5;}
+  .badge{font-family:'IBM Plex Mono';font-size:11.5px;padding:2px 8px;border-radius:20px;}
+  .badge.filled{background:var(--green-bg);color:var(--green);}
+  .badge.empty{background:var(--amber-bg);color:var(--amber);}
+  .table-scroll{overflow:auto;max-height:520px;}
+  .empty-state{padding:48px 28px;text-align:center;color:var(--ink-soft);font-size:14px;}
+
+  @media(max-width:640px){
+    .selector-row,.filter-row,.stats-row{grid-template-columns:1fr;}
+    .hero h1{font-size:32px;}
+    .switch-row{flex-direction:column;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ================= LANDING ================= -->
+<section id="screen-landing">
+  <div class="topbar">
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 24 24" fill="none"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z" stroke="#5FD1CC" stroke-width="1.6" stroke-linejoin="round"/></svg>
+      KENDALI SLA
+    </div>
+  </div>
+  <div class="hero">
+    <div class="eyebrow-line"><span class="dash"></span><span>PENCATATAN KINERJA BULANAN</span></div>
+    <h1>Satu tempat untuk mencatat<br>dan memantau capaian SLA.</h1>
+    <p class="lead">Masuk untuk menginput realisasi kinerja per bidang dan project, atau buka rekap tanpa perlu masuk untuk melihat progres seluruh unit.</p>
+    <div class="switch-row">
+      <button class="switch-card" onclick="goto('login')">
+        <span class="num">01</span>
+        <h3>Log In</h3>
+        <p>Input realisasi kinerja sesuai bidang dan project Anda.</p>
+        <span class="go">Masuk sebagai user &rarr;</span>
+      </button>
+      <button class="switch-card" onclick="openMonitoring()">
+        <span class="num">02</span>
+        <h3>Monitoring</h3>
+        <p>Lihat rekap realisasi seluruh bidang dan project per periode.</p>
+        <span class="go">Buka rekapan &rarr;</span>
+      </button>
+    </div>
+    <div class="grid-illustration">
+      <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+    </div>
+  </div>
+</section>
+
+<!-- ================= LOGIN ================= -->
+<section id="screen-login" class="hidden">
+  <div class="topbar">
+    <div class="brand">KENDALI SLA</div>
+    <button class="link-btn" onclick="goto('landing')">&larr; Kembali</button>
+  </div>
+  <div class="login-shell panel panel-pad">
+    <h2 style="margin-top:0;">Masuk</h2>
+    <p style="color:var(--ink-soft);font-size:13.5px;margin-top:-8px;">Gunakan username dan password yang terdaftar pada data user.</p>
+    <div id="login-error"></div>
+    <form onsubmit="return doLogin(event)">
+      <div class="field">
+        <label>Username</label>
+        <input type="text" id="f-username" required autocomplete="username">
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" id="f-password" required autocomplete="current-password">
+      </div>
+      <button class="btn btn-primary btn-block" id="btn-login" type="submit">Masuk</button>
+    </form>
+  </div>
+</section>
+
+<!-- ================= INPUT ================= -->
+<section id="screen-input" class="hidden">
+  <div class="topbar">
+    <div class="brand">KENDALI SLA</div>
+    <div class="user-chip">
+      Bidang <b id="chip-bidang">-</b> &middot; <b id="chip-nama">-</b>
+      <button class="link-btn" onclick="doLogout()">Keluar</button>
+    </div>
+  </div>
+  <div class="wrap">
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Input Realisasi Kinerja</h2>
+          <div class="sub">Pilih project dan periode, lalu lengkapi seluruh kriteria di bawah.</div>
+        </div>
+      </div>
+      <div class="selector-row">
+        <div class="field" style="margin-bottom:0;">
+          <label>Project</label>
+          <select id="sel-project" onchange="onSelectorChange()"><option value="">Pilih project…</option></select>
+        </div>
+        <div class="field" style="margin-bottom:0;">
+          <label>Periode Kinerja</label>
+          <select id="sel-bulan" onchange="onSelectorChange()">
+            <option value="">Pilih bulan…</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="entry-area"></div>
+
+      <div class="footer-bar hidden" id="footer-bar">
+        <div class="progress-note">Terisi <b id="progress-count">0/0</b> kriteria</div>
+        <div style="display:flex;gap:10px;">
+          <button class="btn btn-ghost" onclick="clearForm()">Bersihkan</button>
+          <button class="btn btn-primary" id="btn-review" disabled onclick="openReview()">Tinjau &amp; Simpan</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= MONITORING ================= -->
+<section id="screen-monitoring" class="hidden">
+  <div class="topbar">
+    <div class="brand">KENDALI SLA</div>
+    <button class="link-btn" onclick="goto('landing')">&larr; Kembali</button>
+  </div>
+  <div class="wrap">
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Monitoring Realisasi</h2>
+          <div class="sub">Rekap kinerja seluruh bidang dan project berdasarkan sheet Realisasi.</div>
+        </div>
+      </div>
+      <div class="filter-row">
+        <div class="field" style="margin-bottom:0;">
+          <label>Bidang</label>
+          <select id="mon-bidang" onchange="loadRekap()"><option value="">Semua bidang</option></select>
+        </div>
+        <div class="field" style="margin-bottom:0;">
+          <label>Project</label>
+          <select id="mon-project" onchange="loadRekap()"><option value="">Semua project</option></select>
+        </div>
+        <div class="field" style="margin-bottom:0;">
+          <label>Periode</label>
+          <select id="mon-bulan" onchange="loadRekap()"><option value="">Semua bulan</option></select>
+        </div>
+      </div>
+      <div class="stats-row" id="mon-stats"></div>
+      <div class="table-scroll">
+        <table class="rekap" id="mon-table">
+          <thead></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div id="mon-empty" class="empty-state hidden">Belum ada data realisasi untuk filter ini.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= REVIEW MODAL ================= -->
+<div class="overlay hidden" id="review-overlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h2>Tinjau sebelum menyimpan</h2>
+      <div class="sub" style="color:var(--ink-soft);font-size:13px;" id="review-sub"></div>
+    </div>
+    <div class="modal-body" id="review-body"></div>
+    <div id="review-error"></div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeReview()">Kembali edit</button>
+      <button class="btn btn-primary" id="btn-save" onclick="confirmSave()">Simpan Data</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ====== KONFIGURASI ======
+ * Tempel URL Web App Google Apps Script (dari Deploy > New deployment) di sini.
+ */
+const CONFIG = {
+  APP_SCRIPT_URL: 'PASTE_URL_WEB_APP_APPS_SCRIPT_DI_SINI'
+};
+const MONTHS = ['JANUARI','FEBRUARI','MARET','APRIL','MEI','JUNI','JULI','AGUSTUS','SEPTEMBER','OKTOBER','NOVEMBER','DESEMBER'];
+
+let session = JSON.parse(sessionStorage.getItem('sla_session') || 'null');
+let slaRows = [];      // struktur sla untuk bidang user
+let currentItems = []; // baris kriteria untuk project+bulan terpilih
+
+function goto(name){
+  ['landing','login','input','monitoring'].forEach(s=>{
+    document.getElementById('screen-'+s).classList.toggle('hidden', s!==name);
+  });
+}
+
+function apiUrl(params){
+  const qs = new URLSearchParams(params).toString();
+  return CONFIG.APP_SCRIPT_URL + (CONFIG.APP_SCRIPT_URL.includes('?') ? '&' : '?') + qs;
+}
+async function apiGet(params){
+  const res = await fetch(apiUrl(params));
+  return res.json();
+}
+async function apiPost(body){
+  const res = await fetch(CONFIG.APP_SCRIPT_URL, {
+    method:'POST',
+    headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body: JSON.stringify(body)
+  });
+  return res.json();
+}
+
+function checkConfigured(){
+  if(!CONFIG.APP_SCRIPT_URL || CONFIG.APP_SCRIPT_URL.indexOf('PASTE_URL') !== -1){
+    alert('URL Apps Script belum diisi. Lihat komentar CONFIG di kode halaman ini, dan komentar di Code.gs untuk cara deploy.');
+    return false;
+  }
+  return true;
+}
+
+/* ---------- LOGIN ---------- */
+async function doLogin(ev){
+  ev.preventDefault();
+  if(!checkConfigured()) return false;
+  const btn = document.getElementById('btn-login');
+  const username = document.getElementById('f-username').value.trim();
+  const password = document.getElementById('f-password').value;
+  document.getElementById('login-error').innerHTML = '';
+  btn.disabled = true; btn.textContent = 'Memeriksa…';
+  try{
+    const r = await apiGet({action:'login', username, password});
+    if(r.success){
+      session = {username:r.username, bidang:r.bidang, nama:r.nama};
+      sessionStorage.setItem('sla_session', JSON.stringify(session));
+      enterInput();
+    } else {
+      document.getElementById('login-error').innerHTML = `<div class="error-msg">${r.message}</div>`;
+    }
+  } catch(err){
+    document.getElementById('login-error').innerHTML = `<div class="error-msg">Gagal menghubungi server: ${err.message}</div>`;
+  }
+  btn.disabled = false; btn.textContent = 'Masuk';
+  return false;
+}
+
+function doLogout(){
+  sessionStorage.removeItem('sla_session');
+  session = null;
+  goto('landing');
+}
+
+/* ---------- INPUT ---------- */
+async function enterInput(){
+  document.getElementById('chip-bidang').textContent = session.bidang || '-';
+  document.getElementById('chip-nama').textContent = session.nama || session.username;
+  goto('input');
+  const bulanSel = document.getElementById('sel-bulan');
+  bulanSel.innerHTML = '<option value="">Pilih bulan…</option>' + MONTHS.map(m=>`<option value="${m}">${cap(m)}</option>`).join('');
+  const projSel = document.getElementById('sel-project');
+  projSel.innerHTML = '<option value="">Memuat…</option>';
+  const r = await apiGet({action:'struktur', bidang: session.bidang});
+  if(!r.success){ projSel.innerHTML = '<option value="">Gagal memuat data</option>'; return; }
+  slaRows = r.rows;
+  const projects = [...new Set(slaRows.map(x=>x['PROJECT']))];
+  projSel.innerHTML = '<option value="">Pilih project…</option>' + projects.map(p=>`<option value="${p}">${p}</option>`).join('');
+}
+function cap(m){ return m.charAt(0)+m.slice(1).toLowerCase(); }
+
+async function onSelectorChange(){
+  const project = document.getElementById('sel-project').value;
+  const bulan = document.getElementById('sel-bulan').value;
+  const area = document.getElementById('entry-area');
+  const footer = document.getElementById('footer-bar');
+  if(!project || !bulan){ area.innerHTML=''; footer.classList.add('hidden'); return; }
+
+  const rows = slaRows.filter(r=>r['PROJECT']===project);
+  let existing = {};
+  try{
+    const rr = await apiGet({action:'realisasi', bidang: session.bidang, project, bulan});
+    if(rr.success) existing = rr.values;
+  }catch(e){/* lanjut tanpa prefill */}
+
+  currentItems = rows.map(r=>{
+    const key = [r['BIDANG'],r['PROJECT'],r['JENIS SLA'],r['LINGKUP PEKERJAAN'],r['LINGKUP SLA'],r['KRITERIA']].join('||');
+    return {
+      jenis_sla:r['JENIS SLA'], lingkup_pekerjaan:r['LINGKUP PEKERJAAN'], lingkup_sla:r['LINGKUP SLA'],
+      kriteria:r['KRITERIA'], polaritas:r['POLARITAS'], satuan:r['SATUAN'], target:r['TARGET'],
+      key, realisasi: (existing[key] ?? '')
+    };
+  });
+  renderEntryForm(project, bulan);
+  footer.classList.remove('hidden');
+  updateProgress();
+}
+
+function renderEntryForm(project, bulan){
+  const area = document.getElementById('entry-area');
+  const byJenis = {};
+  currentItems.forEach(it=>{
+    (byJenis[it.jenis_sla] ||= {}) [it.lingkup_pekerjaan] ||= [];
+    byJenis[it.jenis_sla][it.lingkup_pekerjaan].push(it);
+  });
+  let html = '';
+  Object.keys(byJenis).forEach(jenis=>{
+    html += `<div class="group"><div class="group-head"><span class="tag">${jenis}</span><h3>${project} &middot; ${cap(bulan)}</h3></div>`;
+    Object.keys(byJenis[jenis]).forEach(lp=>{
+      html += `<div class="sub-group"><p class="sub-title">${lp}</p><table class="entry"><thead><tr>
+        <th style="width:26px;"></th><th>Lingkup SLA / Kriteria</th><th>Satuan</th><th>Target</th><th style="width:150px;">Realisasi</th>
+      </tr></thead><tbody>`;
+      byJenis[jenis][lp].forEach(it=>{
+        html += `<tr>
+          <td><span class="filled-dot ${it.realisasi!==''?'on':''}" data-dot="${it.key}"></span></td>
+          <td class="crit"><div style="font-weight:600;">${it.lingkup_sla||''}</div><div style="color:var(--ink-soft);font-size:12.5px;margin-top:2px;">${it.kriteria||''}</div></td>
+          <td class="col-sat">${it.satuan||'-'}</td>
+          <td class="col-tgt">${it.target||'-'}</td>
+          <td><input type="text" inputmode="decimal" placeholder="Isi nilai" value="${it.realisasi}" data-key="${it.key}" oninput="onRealisasiInput(this)"></td>
+        </tr>`;
+      });
+      html += `</tbody></table></div>`;
+    });
+    html += `</div>`;
+  });
+  area.innerHTML = html;
+}
+
+function onRealisasiInput(input){
+  const key = input.dataset.key;
+  const item = currentItems.find(i=>i.key===key);
+  item.realisasi = input.value.trim();
+  const dot = document.querySelector(`[data-dot="${CSS.escape(key)}"]`);
+  if(dot) dot.classList.toggle('on', item.realisasi !== '');
+  updateProgress();
+}
+
+function updateProgress(){
+  const total = currentItems.length;
+  const filled = currentItems.filter(i=>i.realisasi!=='').length;
+  document.getElementById('progress-count').textContent = `${filled}/${total}`;
+  document.getElementById('btn-review').disabled = !(total>0 && filled===total);
+}
+
+function clearForm(){
+  currentItems.forEach(i=>i.realisasi='');
+  renderEntryForm(document.getElementById('sel-project').value, document.getElementById('sel-bulan').value);
+  updateProgress();
+}
+
+/* ---------- REVIEW & SAVE ---------- */
+function openReview(){
+  const project = document.getElementById('sel-project').value;
+  const bulan = document.getElementById('sel-bulan').value;
+  document.getElementById('review-sub').textContent = `${session.bidang} · ${project} · ${cap(bulan)}`;
+  document.getElementById('review-error').innerHTML = '';
+  document.getElementById('review-body').innerHTML = currentItems.map(it=>`
+    <div class="review-row">
+      <span class="lbl">${it.lingkup_sla || it.kriteria}</span>
+      <span class="val">${it.realisasi} <span style="color:var(--ink-soft);font-weight:400;">${it.satuan||''}</span></span>
+    </div>`).join('');
+  document.getElementById('review-overlay').classList.remove('hidden');
+}
+function closeReview(){ document.getElementById('review-overlay').classList.add('hidden'); }
+
+async function confirmSave(){
+  const btn = document.getElementById('btn-save');
+  btn.disabled = true; btn.textContent = 'Menyimpan…';
+  document.getElementById('review-error').innerHTML = '';
+  try{
+    const r = await apiPost({
+      bidang: session.bidang,
+      project: document.getElementById('sel-project').value,
+      bulan: document.getElementById('sel-bulan').value,
+      items: currentItems.map(({key, ...rest})=>rest)
+    });
+    if(r.success){
+      closeReview();
+      alert('Data realisasi berhasil disimpan.');
+      document.getElementById('sel-project').value='';
+      document.getElementById('sel-bulan').value='';
+      document.getElementById('entry-area').innerHTML='';
+      document.getElementById('footer-bar').classList.add('hidden');
+    } else {
+      document.getElementById('review-error').innerHTML = `<div class="error-msg" style="margin:0 28px;">${r.message}</div>`;
+    }
+  }catch(err){
+    document.getElementById('review-error').innerHTML = `<div class="error-msg" style="margin:0 28px;">Gagal menyimpan: ${err.message}</div>`;
+  }
+  btn.disabled = false; btn.textContent = 'Simpan Data';
+}
+
+/* ---------- MONITORING ---------- */
+async function openMonitoring(){
+  if(!checkConfigured()) return;
+  goto('monitoring');
+  const bulanSel = document.getElementById('mon-bulan');
+  bulanSel.innerHTML = '<option value="">Semua bulan</option>' + MONTHS.map(m=>`<option value="${m}">${cap(m)}</option>`).join('');
+  await loadRekap(true);
+}
+
+async function loadRekap(skipListRefresh){
+  const bidang = document.getElementById('mon-bidang').value;
+  const project = document.getElementById('mon-project').value;
+  const bulan = document.getElementById('mon-bulan').value;
+  const r = await apiGet({action:'rekap', bidang, project, bulan});
+  if(!r.success) return;
+
+  if(!skipListRefresh || document.getElementById('mon-bidang').options.length<=1){
+    document.getElementById('mon-bidang').innerHTML = '<option value="">Semua bidang</option>' + r.bidangList.map(b=>`<option value="${b}">${b}</option>`).join('');
+  }
+  document.getElementById('mon-project').innerHTML = '<option value="">Semua project</option>' + r.projectList.map(p=>`<option value="${p}">${p}</option>`).join('');
+
+  const total = r.rows.length;
+  const monthCols = bulan ? [bulan] : r.months;
+  let filledCount = 0;
+  r.rows.forEach(row=>{ monthCols.forEach(m=>{ if((bulan?row.realisasi:row[m]) !== '' && (bulan?row.realisasi:row[m]) != null) filledCount++; }); });
+  const denom = total*monthCols.length;
+
+  document.getElementById('mon-stats').innerHTML = `
+    <div class="stat"><div class="n">${total}</div><div class="l">Kriteria SLA tercakup</div></div>
+    <div class="stat"><div class="n">${denom?Math.round(100*filledCount/denom):0}%</div><div class="l">Kelengkapan input pada filter ini</div></div>
+    <div class="stat"><div class="n">${r.projectList.length}</div><div class="l">Project berbeda</div></div>
+  `;
+
+  const thead = document.getElementById('mon-table').querySelector('thead');
+  const tbody = document.getElementById('mon-table').querySelector('tbody');
+  const monthHeaders = bulan ? [cap(bulan)] : r.months.map(cap);
+  thead.innerHTML = `<tr><th>Bidang</th><th>Project</th><th>Lingkup SLA</th><th>Satuan</th>${monthHeaders.map(m=>`<th>${m}</th>`).join('')}</tr>`;
+
+  if(!r.rows.length){
+    tbody.innerHTML='';
+    document.getElementById('mon-empty').classList.remove('hidden');
+  } else {
+    document.getElementById('mon-empty').classList.add('hidden');
+    tbody.innerHTML = r.rows.map(row=>{
+      const cells = monthCols.map(m=>{
+        const v = bulan ? row.realisasi : row[m];
+        const pct = bulan ? row.pct : row[m+'_PCT'];
+        if(v==='' || v==null) return `<td><span class="badge empty">belum</span></td>`;
+        const pctText = (pct!=='' && pct!=null) ? ` <span style="color:var(--ink-soft);">(${pct})</span>` : '';
+        return `<td><span class="badge filled">${v}</span>${pctText}</td>`;
+      }).join('');
+      return `<tr><td>${row.bidang}</td><td>${row.project}</td><td>${row.lingkup_sla||row.kriteria||''}</td><td class="col-sat">${row.satuan||'-'}</td>${cells}</tr>`;
+    }).join('');
+  }
+}
+
+/* ---------- INIT ---------- */
+(function init(){
+  if(session && session.username){ enterInput(); }
+  else { goto('landing'); }
+})();
+</script>
+</body>
+</html>
