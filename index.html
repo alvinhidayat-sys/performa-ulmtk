@@ -204,8 +204,20 @@
   .pct-tag.good{background:var(--green-bg);color:var(--green);}
   .pct-tag.bad{background:var(--red-bg);color:var(--red);}
   .pct-tag.mid{background:var(--amber-bg);color:var(--amber);}
-  .table-scroll{overflow:auto;max-height:520px;}
+  .table-scroll{overflow:auto;max-height:640px;}
   .empty-state{padding:48px 28px;text-align:center;color:var(--text-soft);font-size:14px;}
+
+  /* ---------- Monitoring: tabel bertingkat Project > Jenis SLA > Lingkup Pekerjaan ---------- */
+  .mon-project-group{border-top:1px solid var(--border);}
+  .mon-project-group:first-of-type{border-top:none;}
+  .mon-project-head{padding:22px 28px 2px;}
+  .mon-project-head h3{margin:0;font-size:18px;font-weight:700;color:var(--text);}
+  .mon-detail{margin-bottom:4px;}
+  .mon-detail th{position:static;white-space:nowrap;}
+  .mon-detail td.crit{max-width:300px;}
+  .mon-detail td.crit .lbl{font-weight:600;}
+  .mon-detail td.crit .sub{color:var(--text-soft);font-size:12.5px;margin-top:2px;}
+  .mon-detail .pct-only{color:var(--text-faint);}
 
   /* ---------- Logo ---------- */
   .logo-img{display:none;}
@@ -422,10 +434,7 @@
         </button>
       </div>
       <div class="table-scroll">
-        <table class="rekap" id="mon-table">
-          <thead></thead>
-          <tbody></tbody>
-        </table>
+        <div id="mon-table"></div>
       </div>
       <div id="mon-empty" class="empty-state hidden">Belum ada data realisasi untuk filter ini.</div>
     </div>
@@ -746,34 +755,77 @@ async function loadRekap(skipListRefresh){
     <div class="stat"><div class="n">${r.projectList.length}</div><div class="l">Project berbeda</div></div>
   `;
 
-  const thead = document.getElementById('mon-table').querySelector('thead');
-  const tbody = document.getElementById('mon-table').querySelector('tbody');
-  const monthHeaders = bulan ? [cap(bulan)] : r.months.map(cap);
-  thead.innerHTML = `<tr><th>Bidang</th><th>Project</th><th>Lingkup SLA</th><th>Satuan</th>${monthHeaders.map(m=>`<th>${m}</th>`).join('')}</tr>`;
+  const monTable = document.getElementById('mon-table');
 
   if(!r.rows.length){
-    tbody.innerHTML='';
+    monTable.innerHTML='';
     document.getElementById('mon-empty').classList.remove('hidden');
   } else {
     document.getElementById('mon-empty').classList.add('hidden');
-    tbody.innerHTML = r.rows.map(row=>{
-      const cells = monthCols.map(m=>{
-        const v = bulan ? row.realisasi : row[m];
-        const pct = bulan ? row.pct : row[m+'_PCT'];
-        if(v==='' || v==null) return `<td><span class="badge empty">belum</span></td>`;
-        let pctTag = '';
-        if(pct!=='' && pct!=null){
-          const num = parseFloat(String(pct).replace(',','.').replace('%',''));
-          const cls = isNaN(num) ? 'mid' : (num>=100 ? 'good' : (num>=80 ? 'mid' : 'bad'));
-          pctTag = `<span class="pct-tag ${cls}">${pct}</span>`;
-        }
-        return `<td><span class="badge filled">${v}</span>${pctTag}</td>`;
-      }).join('');
-      return `<tr><td>${row.bidang}</td><td>${row.project}</td><td>${row.lingkup_sla||row.kriteria||''}</td><td class="col-sat">${row.satuan||'-'}</td>${cells}</tr>`;
-    }).join('');
+    monTable.innerHTML = renderMonTable(r.rows, monthCols, bulan);
   }
 
   monLastData = { rows: r.rows, monthCols, bulan };
+}
+
+function pctCellHTML(pct){
+  if(pct==='' || pct==null) return `<td><span class="pct-only">-</span></td>`;
+  const num = parseFloat(String(pct).replace(',','.').replace('%',''));
+  const cls = isNaN(num) ? 'mid' : (num>=100 ? 'good' : (num>=80 ? 'mid' : 'bad'));
+  return `<td><span class="pct-tag ${cls}">${pct}</span></td>`;
+}
+
+function renderMonTable(rows, monthCols, bulan){
+  // Kelompokkan: Project > Jenis SLA > Lingkup Pekerjaan > baris (Kriteria SLA)
+  const byProject = {};
+  rows.forEach(row=>{
+    const proj = row.project || '-';
+    const jenis = row.jenis_sla || '-';
+    const lp = row.lingkup_pekerjaan || '-';
+    byProject[proj] ||= {};
+    byProject[proj][jenis] ||= {};
+    byProject[proj][jenis][lp] ||= [];
+    byProject[proj][jenis][lp].push(row);
+  });
+
+  const monthHeadCells = monthCols.map(m=>`<th>Realisasi ${cap(m)}</th><th>% ${cap(m)}</th>`).join('');
+
+  let html = '';
+  Object.keys(byProject).forEach(proj=>{
+    html += `<div class="mon-project-group"><div class="mon-project-head"><h3>${proj}</h3></div>`;
+    const jenisMap = byProject[proj];
+    Object.keys(jenisMap).forEach(jenis=>{
+      html += `<div class="group"><div class="group-head"><span class="tag">${jenis}</span></div>`;
+      const lpMap = jenisMap[jenis];
+      Object.keys(lpMap).forEach(lp=>{
+        html += `<div class="sub-group"><p class="sub-title">${lp}</p>
+          <div class="table-scroll" style="max-height:none;overflow:visible;">
+          <table class="rekap mon-detail"><thead><tr>
+            <th>Kriteria SLA</th><th>Polaritas</th><th>Target</th>${monthHeadCells}
+          </tr></thead><tbody>`;
+        lpMap[lp].forEach(row=>{
+          const cells = monthCols.map(m=>{
+            const v = bulan ? row.realisasi : row[m];
+            const pct = bulan ? row.pct : row[m+'_PCT'];
+            const realCell = (v==='' || v==null)
+              ? `<td><span class="badge empty">belum</span></td>`
+              : `<td><span class="badge filled">${v}</span> <span style="color:var(--text-soft);font-size:11.5px;">${row.satuan||''}</span></td>`;
+            return realCell + pctCellHTML(pct);
+          }).join('');
+          html += `<tr>
+            <td class="crit"><div class="lbl">${row.lingkup_sla||''}</div><div class="sub">${row.kriteria||''}</div></td>
+            <td>${row.polaritas||'-'}</td>
+            <td class="col-tgt">${row.target||'-'}</td>
+            ${cells}
+          </tr>`;
+        });
+        html += `</tbody></table></div></div>`;
+      });
+      html += `</div>`;
+    });
+    html += `</div>`;
+  });
+  return html;
 }
 
 /* ---------- EXPORT CSV ---------- */
